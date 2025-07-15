@@ -1,80 +1,24 @@
-/* Reset some default spacing */
-* {
+/* Make video take full screen */
+body, html {
   margin: 0;
   padding: 0;
-  box-sizing: border-box;
+  height: 100%;
+  background: black;
 }
 
-body {
-  background: url('https://www.transparenttextures.com/patterns/green-felt.png') repeat;
-  font-family: 'Segoe UI', sans-serif;
+#webcam {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* fill screen, keep aspect ratio */
+}
+
+#status {
+  position: absolute;
+  top: 10px;
+  left: 10px;
   color: white;
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-}
-
-/* Header styling */
-header {
-  background-color: #2e2e2e;
-  text-align: center;
-  padding: 1rem;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-}
-
-header h1 {
-  color: gold;
-}
-
-/* Main area centers content */
-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Table container adds border & styling */
-.table-container {
-  margin: 1rem;
-  border: 8px solid gold;
-  border-radius: 20px;
-  overflow: hidden;
-  box-shadow: 0 0 30px rgba(0,0,0,0.8);
-}
-
-/* Canvas as the card table */
-#cardTable {
-  display: block;
-  background-color: #228B22; /* green table */
-}
-
-/* Controls under the table */
-.controls {
-  margin-top: 1rem;
-}
-
-.controls button {
-  background-color: #2e2e2e;
-  color: gold;
-  border: 2px solid gold;
-  padding: 0.5rem 1rem;
-  margin: 0 0.5rem;
+  background: rgba(0,0,0,0.5);
+  padding: 0.3em 0.6em;
+  border-radius: 4px;
   font-size: 1rem;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.controls button:hover {
-  background-color: #444;
-}
-
-/* Footer styling */
-footer {
-  background-color: #2e2e2e;
-  text-align: center;
-  padding: 0.5rem;
-  font-size: 0.9rem;
 }

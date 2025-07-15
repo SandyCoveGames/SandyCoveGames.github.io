@@ -3,25 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Casino Card Table</title>
+  <title>Camera View</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header>
-    <h1>🃏 Casino Card Table</h1>
-  </header>
-  <main>
-    <div class="table-container">
-      <canvas id="cardTable" width="800" height="500"></canvas>
-    </div>
-    <div class="controls">
-      <button>Deal</button>
-      <button>Fold</button>
-      <button>New Game</button>
-    </div>
-  </main>
-  <footer>
-    <p>&copy; 2025 Card Game Project</p>
-  </footer>
+  <video id="webcam" autoplay playsinline></video>
+  <p id="status">Requesting camera...</p>
+
+  <script src="script.js"></script>
 </body>
 </html>
