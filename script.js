@@ -49,4 +49,7 @@ function processFrame() {
   cv.Canny(gray, edges, 50, 150, 3, false);
   cv.imshow('canvas', edges);
   requestAnimationFrame(processFrame);
+  console.log("Video size:", video.videoWidth, video.videoHeight);
+  console.log("Mat size:", src.cols, src.rows);
+
 }
