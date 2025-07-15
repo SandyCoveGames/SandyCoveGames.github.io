@@ -33,6 +33,17 @@ cv['onRuntimeInitialized'] = async () => {
 };
 
 function processFrame() {
+  if (src.cols !== video.videoWidth || src.rows !== video.videoHeight) {
+    console.log("Recreating Mats due to size mismatch");
+    src.delete();
+    gray.delete();
+    edges.delete();
+
+    src = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC4);
+    gray = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC1);
+    edges = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC1);
+  }
+
   cap.read(src);
   cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
   cv.Canny(gray, edges, 50, 150, 3, false);
