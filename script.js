@@ -3,7 +3,7 @@ const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const statusText = document.getElementById('status');
 
-let src, gray, edges;
+let src, gray;
 let cap;
 
 cv['onRuntimeInitialized'] = async () => {
@@ -19,11 +19,10 @@ cv['onRuntimeInitialized'] = async () => {
 
       src = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC4);
       gray = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC1);
-      edges = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC1);
 
       cap = new cv.VideoCapture(video);
 
-      statusText.textContent = "Camera is live! Applying edge detection...";
+      statusText.textContent = "Camera is live! Showing grayscale video...";
       processFrame();
     };
   } catch (err) {
@@ -37,19 +36,16 @@ function processFrame() {
     console.log("Recreating Mats due to size mismatch");
     src.delete();
     gray.delete();
-    edges.delete();
 
     src = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC4);
     gray = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC1);
-    edges = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC1);
   }
 
   cap.read(src);
   cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-  cv.Canny(gray, edges, 50, 150, 3, false);
-  cv.imshow('canvas', edges);
+  cv.imshow('canvas', gray);
   requestAnimationFrame(processFrame);
+
   console.log("Video size:", video.videoWidth, video.videoHeight);
   console.log("Mat size:", src.cols, src.rows);
-
 }
