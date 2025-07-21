@@ -1,15 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Camera View</title>
-  <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8">
+  <title>Welcome</title>
 </head>
 <body>
-  <video id="webcam" autoplay playsinline></video>
-  <p id="status">Requesting camera...</p>
+  <h1>Welcome! Please enter your name:</h1>
+  <input type="text" id="nameInput" placeholder="Your name">
+  <button onclick="submitName()">Submit</button>
 
-  <script src="script.js"></script>
+  <script>
+    function submitName() {
+      const name = document.getElementById('nameInput').value.trim();
+      if (name) {
+        // store in localStorage
+        localStorage.setItem('username', name);
+        // redirect to index.html
+        window.location.href = 'bs.html';
+      } else {
+        alert('Please enter your name!');
+      }
+    }
+  </script>
 </body>
 </html>

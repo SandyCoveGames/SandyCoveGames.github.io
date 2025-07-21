@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Firebase Test</title>
+</head>
+<body>
+  <h1 id="displayUsername"></h1>
+  
+  <input type="text" id="messageInput" placeholder="Enter message here">
+  <button id="sendButton">Send</button>
+  <button id="lastMessageButton">Retrieve Last Message</button>
+  
+  <p><strong>Last Message:</strong> <span id="lastMessage">None</span></p>
+
+  <script type="module">
+     // Import the functions you need from the SDKs you need
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-analytics.js";
+    import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js"
+    // TODO: Add SDKs for Firebase products that you want to use
+    // https://firebase.google.com/docs/web/setup#available-libraries
+
+    // Your web app's Firebase configuration
+    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+    const firebaseConfig = {
+      apiKey: "AIzaSyCKBJl__7Zq_zvplCE71uXBB4yAd8Ext9E",
+      authDomain: "sandy-cove-games.firebaseapp.com",
+      projectId: "sandy-cove-games",
+      storageBucket: "sandy-cove-games.firebasestorage.app",
+      messagingSenderId: "1067646402470",
+      appId: "1:1067646402470:web:c61c77a725351b2ccc5967",
+      measurementId: "G-D7X165G9C7"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase();
+    const user = localStorage.getItem("username");
+    const usersRef = ref(db, 'users/' + user);
+
+
+    set(usersRef, user);
+    var recieved = await get(usersRef)
+    console.log(recieved.val());
+    document.getElementById("displayUsername").innerText = recieved.val();
+
+    document.getElementById("sendButton").addEventListener("click", sendMessage);
+    document.getElementById("lastMessageButton").addEventListener("click", getLastMessage);
+    function sendMessage() {
+      var newDeck = assignDeck();
+    }
+    async function getLastMessage() {
+      var recieved = await get(reference);
+      console.log(recieved.val());
+    }
+
+
+    function assignDeck() {
+        let suits = ["Heart", "Diamond", "Club", "Spade"];
+        let numbers = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+        let words = ["Ace", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Jack", "Queen", "King"];
+        let deck = [];
+        for(var i = 0; i < suits.length; i++){
+            for(var j = 0; j < numbers.length; j++){
+                deck.push(new Card(suits[i], numbers[j], words[j]));
+            }
+        }
+        for(var i = 0; i < 52; i++){
+            console.log(deck[i].toString());
+        }
+        return(deck);
+    }
+    class Card {
+        constructor(suit, number, word) {
+            this.suit = suit;
+            this.number = number;
+            this.word = word;
+        }
+        toString() {
+            return "" + this.word + " of " + this.suit + "'s";
+        }
+    }
+  </script>
+</body>
+</html>
