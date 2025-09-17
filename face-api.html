@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width,initial-scale=1" />
+	<title>face-api.js demo</title>
+	<style>
+		body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; padding: 1rem; }
+		#container { position: relative; display: inline-block; }
+		video, canvas { border-radius: 6px; }
+		video { -webkit-transform: scaleX(-1); transform: scaleX(-1); }
+		canvas { position: absolute; left: 0; top: 0; pointer-events: none; }
+		.controls { margin-top: 0.75rem; }
+	</style>
+</head>
+<body>
+	<h1>face-api.js — Minimal Demo</h1>
+
+	<p>This page demonstrates face detection using <code>face-api.js</code>. It expects model files to be available under a <code>models/</code> folder served by an HTTP server.</p>
+
+	<div id="container">
+		<video id="video" width="640" height="480" autoplay muted></video>
+		<canvas id="overlay" width="640" height="480"></canvas>
+	</div>
+
+	<div class="controls">
+		<button id="startBtn">Start</button>
+		<button id="stopBtn" disabled>Stop</button>
+		<label style="margin-left:1rem"><input id="drawLandmarks" type="checkbox" checked /> Draw landmarks</label>
+	</div>
+
+	<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+	<script>
+		console.log(faceapi.nets)
+
+		// Short contract:
+		// - Inputs: webcam frames
+		// - Outputs: drawn detection boxes and landmarks on overlay canvas
+		// - Error modes: camera denied or models missing -> console.error + UI disabled
+
+		const video = document.getElementById('video');
+		const overlay = document.getElementById('overlay');
+		const ctx = overlay.getContext('2d');
+		const startBtn = document.getElementById('startBtn');
+		const stopBtn = document.getElementById('stopBtn');
+		const drawLandmarksCheckbox = document.getElementById('drawLandmarks');
+
+		let stream = null;
+		let running = false;
+		let detectInterval = null;
+
+		// Update these if you host models elsewhere.
+		const MODEL_URL = './models';
+
+		async function loadModels() {
+			const testUrl = '/models/face_landmark_68_model-weights_manifest.json';
+			try {
+				console.log('Checking for manifest at', testUrl);
+				const resp = await fetch(testUrl, { method: 'GET' });
+				if (!resp.ok) {
+					console.warn('Manifest fetch returned', resp.status, resp.statusText);
+				} else {
+					console.log('Manifest found (status', resp.status + ')');
+				}
+			} catch (fetchErr) {
+				console.error('Fetch error when checking manifest:', fetchErr);
+			}
+
+			try {
+				console.log('Loading TinyFaceDetector from /models...');
+				await faceapi.nets.tinyFaceDetector.loadFromUri('/models');
+				console.log('tinyFaceDetector loaded');
+
+				console.log('Loading faceLandmark68Net from /models...');
+				await faceapi.nets.faceLandmark68Net.loadFromUri('/models');
+				console.log('faceLandmark68Net loaded successfully');
+
+				// load SSD as optional fallback
+				try {
+					console.log('Loading ssdMobilenetv1 from /models (optional)...');
+					await faceapi.nets.ssdMobilenetv1.loadFromUri('/models');
+					console.log('ssdMobilenetv1 loaded (optional)');
+				} catch (ssdErr) {
+					console.warn('ssdMobilenetv1 optional load failed:', ssdErr && ssdErr.message ? ssdErr.message : ssdErr);
+				}
+			} catch (err) {
+				console.error('Model loading failed:', err);
+				throw err;
+			}
+		}
+
+		async function startCamera() {
+			try {
+				stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+				video.srcObject = stream;
+				await video.play();
+				overlay.width = video.videoWidth || overlay.width;
+				overlay.height = video.videoHeight || overlay.height;
+			} catch (err) {
+				console.error('Camera error:', err);
+				alert('Failed to access camera. Check permissions.');
+				throw err;
+			}
+		}
+
+		function stopCamera() {
+			if (stream) {
+				stream.getTracks().forEach(t => t.stop());
+				stream = null;
+			}
+			video.pause();
+			video.srcObject = null;
+		}
+
+		function polyPoints(ctx, points, startIndex, endIndex) {
+			ctx.moveTo(points[startIndex].x, points[startIndex].y);
+			for(var i = startIndex + 1; i <= endIndex; i++) {
+				ctx.lineTo(points[i].x, points[i].y);
+			}
+		}
+
+		var points;
+		async function detectLoop() {
+			if (!running) return;
+			if (video.readyState < 2) { // HAVE_CURRENT_DATA
+				requestAnimationFrame(detectLoop);
+				return;
+			}
+
+			try {
+				const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.5 });
+				const results = await faceapi.detectAllFaces(video, options).withFaceLandmarks();
+				
+				// draw
+				ctx.clearRect(0, 0, overlay.width, overlay.height);
+				ctx.save();
+				// mirror horizontally to match video mirroring
+				ctx.scale(-1, 1);
+				ctx.translate(-overlay.width, 0);
+
+
+				console.log(results);
+				if(results.length > 0){
+					console.log(results[0].unshiftedLandmarks.positions);
+				}
+				//console.log(results[0].unshiftedLandmarks.positions);
+
+				// all the values are mirrored I will be using the fliped apperance
+
+				// 0-16 is chin/face shape 
+				// 0 & 16 at top of the ear 3 & 13 are bottom of ear
+				// 8 is bottom of chin, 8-16 is left, 0-8 is right
+				// 17-21 is right eyebrow, most left is 21
+				// 22-26 is left eyebrow, most left is 26
+				// 27-35 is whole nose
+				// 27 is top of nose, 30 is tip of nose
+				// sides of nose and nostrils are 31-35, 33 is middle, 35 is left, 31 is right
+				// 36-41 is right eye, numbers like a c, 
+				// 36 is right corner and circles above and around, 39 is left corner
+				// 42-47 is left eye, numbers like a c,
+				// 42 is right corner and circles above and around, 45 is left corner
+				// whole mouth is 48-67, numbers like a c,
+				// circles around mouth outline 48-59
+				// 48 is right mouth corner, 54 is left mouth corner
+				// 51 is top lip center dip 57 is bottom center lip
+				// 60-67 is inner lip, 60 is right mouth corner, 64 is left mouth corner
+
+				if(results.length > 0)	
+				{
+					points = results[0].landmarks.positions;
+				}
+					// for head outline
+					ctx.beginPath();
+					polyPoints(ctx, points, 0, 16);
+					let topOfForeheadY = points[27].y-(points[8].y-points[30].y);
+					ctx.lineTo(points[26].x, (topOfForeheadY*2+points[24].y)/3);
+					ctx.lineTo(points[27].x, topOfForeheadY);
+					ctx.lineTo(points[17].x, (topOfForeheadY*2+points[19].y)/3);
+					ctx.closePath();
+					ctx.fillStyle = "black";
+					ctx.fill();
+					// ending head outline
+
+					// start right eyebrow
+					ctx.beginPath();
+					polyPoints(ctx, points, 17, 21);
+					ctx.lineWidth = 12;
+					ctx.strokeStyle = "blue";
+					ctx.stroke();
+					// ending right eyebrow
+
+					// start left eyebrow
+					ctx.beginPath();
+					polyPoints(ctx, points, 22, 26);
+					ctx.lineWidth = 12;
+					ctx.strokeStyle = "blue";
+					ctx.stroke();
+					// ending left eyebrow
+
+					// start nose
+					ctx.beginPath();
+					ctx.moveTo(points[27].x, points[27].y);
+					if(points[31].x-points[27].x > points[27].x-points[35].x) {
+						ctx.lineTo(points[35].x, points[35].y);
+						ctx.lineTo(points[31].x, points[31].y);
+					}else{
+						ctx.lineTo(points[31].x, points[31].y);
+						ctx.lineTo(points[35].x, points[35].y);
+					}
+					ctx.lineWidth = 6;
+					ctx.strokeStyle = "yellow";
+					ctx.stroke();
+					// end nose
+
+					// start right eye
+					ctx.beginPath();
+					polyPoints(ctx, points, 36, 41);
+					ctx.closePath();
+					ctx.fillStyle = "green";
+					ctx.fill();
+					ctx.lineWidth = 4
+					ctx.strokeStyle = "white";
+					ctx.stroke();
+					// end right eye
+
+					// start left eye
+					ctx.beginPath();
+					polyPoints(ctx, points, 42, 47);
+					ctx.closePath();
+					ctx.fillStyle = "green";
+					ctx.fill();
+					ctx.lineWidth = 4;
+					ctx.strokeStyle = "white";
+					ctx.stroke();
+					// end left eye
+
+					// start lips
+					ctx.beginPath();
+					polyPoints(ctx, points, 48, 59);
+					ctx.closePath();
+					ctx.fillStyle = "red";
+					ctx.fill();
+					ctx.lineWidth = 4;
+					ctx.strokeStyle = "white";
+					ctx.stroke();
+					// end lips 
+
+					// start mouth hole
+					ctx.beginPath();
+					polyPoints(ctx, points, 60, 67);
+					ctx.closePath();
+					ctx.fillStyle = "black"; 
+					ctx.fill();
+					ctx.lineWidth = 4;
+					ctx.strokeStyle = "white";
+					ctx.stroke();
+					// end mouth hole
+							
+
+				
+				
+
+
+				
+				results.forEach(res => {
+					const { x, y, width, height } = res.detection.box;
+					// adjust box to canvas size (video & canvas should match)
+					ctx.strokeStyle = 'lime';
+					ctx.lineWidth = 2;
+					ctx.strokeRect(x, y, width, height);
+
+					if (drawLandmarksCheckbox.checked && res.landmarks) {
+						ctx.fillStyle = 'red';
+						var i = 0;
+						res.landmarks.positions.forEach(p => {
+							// ctx.beginPath();
+							// ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+							// ctx.fill();
+							// ctx.font = '8px sans-serif';
+							// if(i < 10 || i > 60){
+							// 	ctx.fillStyle = 'lime';
+							// }else if(i < 20 || i > 50){
+							// 	ctx.fillStyle = 'cyan';
+							// }else if(i < 30 || i > 40){
+							// 	ctx.fillStyle = 'red';
+							// }else{
+							// 	ctx.fillStyle = 'white';
+							// }
+							// if(i > 47){
+							// 	ctx.fillText(i, p.x, p.y);
+							// }
+							// i++;
+						});
+					}
+				});
+
+				ctx.restore();
+			} catch (inferErr) {
+				console.error('Inference error — likely model not loaded. Error:', inferErr);
+				console.warn('Ensure you called loadModels() and that the models exist under /models (check DevTools Network for 404s).');
+				// Stop running to avoid spamming errors
+				running = false;
+				startBtn.disabled = false;
+				startBtn.textContent = 'Start';
+				return;
+			}
+			requestAnimationFrame(detectLoop);
+		}
+
+		startBtn.addEventListener('click', async () => {
+			startBtn.disabled = true;
+			try {
+				startBtn.textContent = 'Loading models...';
+				await loadModels();
+				startBtn.textContent = 'Starting camera...';
+				await startCamera();
+				running = true;
+				startBtn.disabled = true;
+				stopBtn.disabled = false;
+				startBtn.textContent = 'Running';
+				requestAnimationFrame(detectLoop);
+			} catch (err) {
+				console.error(err);
+				startBtn.disabled = false;
+				startBtn.textContent = 'Start';
+			}
+		});
+
+		stopBtn.addEventListener('click', () => {
+			running = false;
+			stopCamera();
+			stopBtn.disabled = true;
+			startBtn.disabled = false;
+			startBtn.textContent = 'Start';
+			ctx.clearRect(0, 0, overlay.width, overlay.height);
+		});
+
+		// Quick check: warn if served as file://
+		if (location.protocol === 'file:') {
+			const p = document.createElement('p');
+			p.style.color = 'darkorange';
+			p.textContent = 'Note: For model loading to work you must serve this page over HTTP (not file://). See instructions below.';
+			document.body.insertBefore(p, document.getElementById('container'));
+		}
+	</script>
+
+</body>
+</html>
