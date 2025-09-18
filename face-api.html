@@ -5,11 +5,41 @@
 	<meta name="viewport" content="width=device-width,initial-scale=1" />
 	<title>face-api.js demo</title>
 	<style>
-		body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; padding: 1rem; }
-		#container { position: relative; display: inline-block; }
+		body { 
+			font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; 
+			margin: 0; 
+			padding: 1rem; 
+		}
+
+		.main-layout {
+			display: flex;
+			gap: 1rem;
+			align-items: flex-start;
+		}
+
+		#container {
+			position: relative; 
+			display: inline-block;
+		}
+
 		video, canvas { border-radius: 6px; }
 		video { -webkit-transform: scaleX(-1); transform: scaleX(-1); }
 		canvas { position: absolute; left: 0; top: 0; pointer-events: none; }
+
+		.color-controls {
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+			min-width: 180px;
+		}
+
+		.color-controls label {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			font-size: 0.9rem;
+		}
+
 		.controls { margin-top: 0.75rem; }
 	</style>
 </head>
@@ -18,15 +48,41 @@
 
 	<p>This page demonstrates face detection using <code>face-api.js</code>. It expects model files to be available under a <code>models/</code> folder served by an HTTP server.</p>
 
-	<div id="container">
-		<video id="video" width="640" height="480" autoplay muted></video>
-		<canvas id="overlay" width="640" height="480"></canvas>
+	<div class="main-layout">
+		<div id="container">
+			<video id="video" width="640" height="480" autoplay muted></video>
+			<canvas id="overlay" width="640" height="480"></canvas>
+		</div>
+
+		<div class="color-controls">
+			<label for="colorPickerEyebrow">
+				Eyebrows <input type="color" id="colorPickerEyebrow" value="#0000ff">
+			</label>
+
+			<label for="colorPickerEye">
+				Eyes <input type="color" id="colorPickerEye" value="#008000">
+			</label>
+
+			<label for="colorPickerNose">
+				Nose <input type="color" id="colorPickerNose" value="#ffff00">
+			</label>
+
+			<label for="colorPickerMouth">
+				Mouth <input type="color" id="colorPickerMouth" value="#ff0000">
+			</label>
+
+			<label for="colorPickerFace">
+				Face <input type="color" id="colorPickerFace" value="#000000">
+			</label>
+		</div>
 	</div>
 
 	<div class="controls">
 		<button id="startBtn">Start</button>
 		<button id="stopBtn" disabled>Stop</button>
-		<label style="margin-left:1rem"><input id="drawLandmarks" type="checkbox" checked /> Draw landmarks</label>
+		<label style="margin-left:1rem">
+			<input id="drawLandmarks" type="checkbox" checked /> Draw landmarks
+		</label>
 	</div>
 
 	<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
@@ -49,7 +105,37 @@
 		let running = false;
 		let detectInterval = null;
 
-		// Update these if you host models elsewhere.
+		// user choices
+
+		let userColorEyebrow = '#0000ff';
+		let userColorEye = '#008000';
+		let userColorNose = '#ffff00';
+		let userColorMouth = '#ff0000';
+		let userColorFace = "000000";
+
+		const colorPickerEyebrow = document.getElementById('colorPickerEyebrow');
+		const colorPickerEye = document.getElementById('colorPickerEye');
+		const colorPickerNose = document.getElementById('colorPickerNose');
+		const colorPickerMouth = document.getElementById('colorPickerMouth');
+		const colorPickerFace = document.getElementById('colorPickerFace');
+
+		colorPickerEyebrow.addEventListener('input', (event) => {
+			userColorEyebrow = event.target.value;
+		});
+		colorPickerEye.addEventListener('input', (event) => {
+			userColorEye = event.target.value;
+		});
+		colorPickerNose.addEventListener('input', (event) => {
+			userColorNose = event.target.value;
+		});
+		colorPickerMouth.addEventListener('input', (event) => {
+			userColorMouth = event.target.value;
+		});
+		colorPickerFace.addEventListener('input', (event) => {
+			userColorFace = event.target.value;
+		});
+
+		
 		const MODEL_URL = '/models';
 
 		async function loadModels() {
@@ -177,7 +263,7 @@
 					ctx.lineTo(points[27].x, topOfForeheadY);
 					ctx.lineTo(points[17].x, (topOfForeheadY*2+points[19].y)/3);
 					ctx.closePath();
-					ctx.fillStyle = "black";
+					ctx.fillStyle = userColorFace;
 					ctx.fill();
 					// ending head outline
 
@@ -185,7 +271,7 @@
 					ctx.beginPath();
 					polyPoints(ctx, points, 17, 21);
 					ctx.lineWidth = 12;
-					ctx.strokeStyle = "blue";
+					ctx.strokeStyle = userColorEyebrow;
 					ctx.stroke();
 					// ending right eyebrow
 
@@ -193,7 +279,7 @@
 					ctx.beginPath();
 					polyPoints(ctx, points, 22, 26);
 					ctx.lineWidth = 12;
-					ctx.strokeStyle = "blue";
+					ctx.strokeStyle = userColorEyebrow;
 					ctx.stroke();
 					// ending left eyebrow
 
@@ -208,7 +294,7 @@
 						ctx.lineTo(points[35].x, points[35].y);
 					}
 					ctx.lineWidth = 6;
-					ctx.strokeStyle = "yellow";
+					ctx.strokeStyle = userColorNose;
 					ctx.stroke();
 					// end nose
 
@@ -216,10 +302,10 @@
 					ctx.beginPath();
 					polyPoints(ctx, points, 36, 41);
 					ctx.closePath();
-					ctx.fillStyle = "green";
+					ctx.fillStyle = userColorEye;
 					ctx.fill();
 					ctx.lineWidth = 4
-					ctx.strokeStyle = "white";
+					ctx.strokeStyle = userColorEye;
 					ctx.stroke();
 					// end right eye
 
@@ -227,10 +313,10 @@
 					ctx.beginPath();
 					polyPoints(ctx, points, 42, 47);
 					ctx.closePath();
-					ctx.fillStyle = "green";
+					ctx.fillStyle = userColorEye;
 					ctx.fill();
 					ctx.lineWidth = 4;
-					ctx.strokeStyle = "white";
+					ctx.strokeStyle = userColorEye;
 					ctx.stroke();
 					// end left eye
 
@@ -238,11 +324,11 @@
 					ctx.beginPath();
 					polyPoints(ctx, points, 48, 59);
 					ctx.closePath();
-					ctx.fillStyle = "red";
+					ctx.fillStyle = userColorMouth;
 					ctx.fill();
-					ctx.lineWidth = 4;
-					ctx.strokeStyle = "white";
-					ctx.stroke();
+					// ctx.lineWidth = 4;
+					// ctx.strokeStyle = "white";
+					// ctx.stroke();
 					// end lips 
 
 					// start mouth hole
@@ -251,9 +337,9 @@
 					ctx.closePath();
 					ctx.fillStyle = "black"; 
 					ctx.fill();
-					ctx.lineWidth = 4;
-					ctx.strokeStyle = "white";
-					ctx.stroke();
+					// ctx.lineWidth = 4;
+					// ctx.strokeStyle = "white";
+					// ctx.stroke();
 					// end mouth hole
 							
 
